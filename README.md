@@ -1,16 +1,51 @@
-# React + Vite
+REPO STRUCTURE
+All API config is in: src/api/index.js
+- Change API_BASE to your XAMPP IP
+- Set DEMO_MODE = false when the backend is ready
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+ENDPOINTS THE FRONTEND EXPECTS
 
-Currently, two official plugins are available:
+Auth
+  POST   /auth/login               { email, password, role } → { token, user }
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+Dashboard
+  GET    /dashboard/stats           → { activeGuides, certified, alertsToday, activeTours, pendingApproval, alertsYTD }
 
-## React Compiler
+Guides (Admin)
+  GET    /admin/guides              → [ { user_id, username, cv_status, modules_completed } ]
+  PUT    /admin/cv/:user_id/approve { approval_tier } → 200 OK
+  PUT    /admin/cv/:user_id/reject  → 200 OK
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+CV Upload (Guide)
+  POST   /cv/upload                 multipart/form-data: cv_file (PDF), user_id
 
-## Expanding the ESLint configuration
+Alerts
+  GET    /alerts?sort=desc&limit=50 → [ { alert_id, cam, location, anomaly_type, timestamp, guide, severity, video_evidence_path } ]
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+Training Modules (Admin)
+  POST   /admin/modules             { title, blocks, settings } → 201
+  PUT    /admin/modules/:id         { title, blocks, settings } → 200
+
+Quiz
+  POST   /quiz/submit               { module_id, answers, score, passed } → 200
+
+Certifications
+  GET    /certifications/recent?limit=4 → [ { name, module_title, score_achieved } ]
+
+AUTH HEADERS
+All protected routes expect:
+  Authorization: Bearer <jwt_token>
+Return HTTP 401 if token is missing/expired — the frontend will auto-logout.
+Return HTTP 403 for role violations (RBAC).
+
+FILE STORAGE
+- CV PDFs: store outside web root, return cv_path in guide object
+- Frontend builds download link as: /files/cv/:cv_path
+- Only accept .pdf, max 5MB (frontend validates client-side too but backend must also validate)
+
+CORS
+Add these headers to every response from the XAMPP server:
+  Access-Control-Allow-Origin: http://localhost:5173
+  Access-Control-Allow-Headers: Authorization, Content-Type
+  Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS
+(Change the origin to the actual frontend IP/port when deploying)
